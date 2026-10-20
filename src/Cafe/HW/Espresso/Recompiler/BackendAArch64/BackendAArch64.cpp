@@ -1971,6 +1971,14 @@ std::unique_ptr<CodeContext> PPCRecompiler_generateAArch64Code(struct PPCRecFunc
 {
 	auto aarch64GenContext = std::make_unique<AArch64GenContext_t>();
 
+	// These containers are populated while translating this function. Reserve
+	// based on the IML size so large functions don't repeatedly allocate/rehash.
+	size_t imlInstructionCount = 0;
+	for (IMLSegment* segment : ppcImlGenContext->segmentList2)
+		imlInstructionCount += segment->imlList.size();
+	aarch64GenContext->jumps.reserve(imlInstructionCount);
+	aarch64GenContext->segmentStarts.reserve(ppcImlGenContext->segmentList2.size());
+
 	// generate iml instruction code
 	bool codeGenerationFailed = false;
 	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
