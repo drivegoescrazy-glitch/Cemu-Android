@@ -222,6 +222,7 @@ public:
 	VkInstance GetVkInstance() const { return m_instance; }
 	VkDevice GetLogicalDevice() const { return m_logicalDevice; }
 	VkPhysicalDevice GetPhysicalDevice() const { return m_physicalDevice; }
+	uint32 GetNonCoherentAtomSize() const { return m_featureControl.limits.nonCoherentAtomSize; }
 
 	VkDescriptorPool GetDescriptorPool() const { return m_descriptorPool; }
 

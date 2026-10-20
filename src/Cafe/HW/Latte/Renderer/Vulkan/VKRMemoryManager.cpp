@@ -109,12 +109,18 @@ VKRSynchronizedRingAllocator::AllocatorReservation_t VKRSynchronizedRingAllocato
 void VKRSynchronizedRingAllocator::FlushReservation(AllocatorReservation_t& uploadReservation)
 {
 	cemu_assert_debug(m_bufferType == VKR_BUFFER_TYPE::STAGING); // only the staging buffer isn't coherent
-	// todo - use nonCoherentAtomSize for flush size (instead of hardcoded constant)
+	// Vulkan requires non-coherent flush offsets and sizes to be atom-aligned.
+	// Reservations are contained in atom-aligned ring buffers, so the rounded-up
+	// range remains inside the backing allocation.
+	const VkDeviceSize atomSize = std::max<VkDeviceSize>(1, m_vkr->GetNonCoherentAtomSize());
+	const VkDeviceSize start = (static_cast<VkDeviceSize>(uploadReservation.bufferOffset) / atomSize) * atomSize;
+	const VkDeviceSize reservationEnd = static_cast<VkDeviceSize>(uploadReservation.bufferOffset) + uploadReservation.size;
+	const VkDeviceSize end = ((reservationEnd + atomSize - 1) / atomSize) * atomSize;
 	VkMappedMemoryRange flushedRange{};
 	flushedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 	flushedRange.memory = uploadReservation.vkMem;
-	flushedRange.offset = uploadReservation.bufferOffset;
-	flushedRange.size = uploadReservation.size;
+	flushedRange.offset = start;
+	flushedRange.size = end - start;
 	vkFlushMappedMemoryRanges(m_vkr->GetLogicalDevice(), 1, &flushedRange);
 }
 
@@ -217,12 +223,17 @@ void VKRSynchronizedHeapAllocator::FlushReservation(AllocatorReservation* upload
 {
 	if (m_chunkedHeap.RequiresFlush(uploadReservation->bufferIndex))
 	{
+		VulkanRenderer* renderer = VulkanRenderer::GetInstance();
+		const VkDeviceSize atomSize = std::max<VkDeviceSize>(1, renderer->GetNonCoherentAtomSize());
+		const VkDeviceSize start = (static_cast<VkDeviceSize>(uploadReservation->bufferOffset) / atomSize) * atomSize;
+		const VkDeviceSize reservationEnd = static_cast<VkDeviceSize>(uploadReservation->bufferOffset) + uploadReservation->size;
+		const VkDeviceSize end = ((reservationEnd + atomSize - 1) / atomSize) * atomSize;
 		VkMappedMemoryRange flushedRange{};
 		flushedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 		flushedRange.memory = uploadReservation->vkMem;
-		flushedRange.offset = uploadReservation->bufferOffset;
-		flushedRange.size = uploadReservation->size;
-		vkFlushMappedMemoryRanges(VulkanRenderer::GetInstance()->GetLogicalDevice(), 1, &flushedRange);
+		flushedRange.offset = start;
+		flushedRange.size = end - start;
+		vkFlushMappedMemoryRanges(renderer->GetLogicalDevice(), 1, &flushedRange);
 	}
 }
 
