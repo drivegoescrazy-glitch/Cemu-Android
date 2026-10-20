@@ -136,10 +136,16 @@ android {
         externalNativeBuild {
             cmake {
                 arguments.addAll(cmakeArguments)
-                // Build the Android shared library and its dependencies only.
-                // ZArchive's standalone CLI executable is a host utility and must
-                // not be cross-linked as an Android executable by the Gradle plugin.
-                targets.add("CemuAndroid")
+                // Build the app library plus its Android hook libraries. ZArchive's
+                // standalone CLI executable is a host utility and must not be cross-linked
+                // as an Android executable by the Gradle plugin.
+                targets.addAll(listOf(
+                    "CemuAndroid",
+                    "file_redirect_hook",
+                    "gsl_alloc_hook",
+                    "hook_impl",
+                    "main_hook"
+                ))
                 abiFilters("arm64-v8a")
             }
         }
