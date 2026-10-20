@@ -80,7 +80,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Link-time optimization is enabled for optimized builds on supported toolchains.
 # Android's NDK Clang/LLD also supports IPO; enabling it lets the AArch64 recompiler
 # and renderer hot paths be optimized across Cemu's internal library boundaries.
-option(CEMU_ANDROID_ENABLE_LTO "Enable link-time optimization for Android release builds" ON)
+option(CEMU_ANDROID_ENABLE_LTO "Enable link-time optimization for Android release builds" OFF)
 if(NOT ANDROID OR CEMU_ANDROID_ENABLE_LTO)
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
