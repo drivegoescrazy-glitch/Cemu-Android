@@ -7,6 +7,8 @@
 #include <xbyak_aarch64_util.h>
 
 #include <cstddef>
+#include <unordered_map>
+#include <vector>
 
 #include "../PPCRecompiler.h"
 #include "asm/x64util.h"
@@ -126,7 +128,7 @@ struct AArch64GenContext_t : CodeGenerator, CodeContext
 
 	void gqr_generateScaleCode(const VReg& resReg, const VReg& dataReg, bool isLoad, bool scalePS1, const IMLReg& registerGQR);
 	static constexpr size_t MAX_JUMP_INSTR_COUNT = 2;
-	std::list<std::pair<size_t, JumpInfo>> jumps;
+	std::vector<std::pair<size_t, JumpInfo>> jumps;
 	void prepareJump(JumpInfo&& jumpInfo)
 	{
 		jumps.emplace_back(getSize(), jumpInfo);
@@ -134,7 +136,7 @@ struct AArch64GenContext_t : CodeGenerator, CodeContext
 			nop();
 	}
 
-	std::map<IMLSegment*, size_t> segmentStarts;
+	std::unordered_map<IMLSegment*, size_t> segmentStarts;
 	void storeSegmentStart(IMLSegment* imlSegment)
 	{
 		segmentStarts[imlSegment] = getSize();

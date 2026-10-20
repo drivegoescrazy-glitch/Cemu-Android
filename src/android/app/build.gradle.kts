@@ -79,8 +79,14 @@ android {
             applicationIdSuffix = ".debug"
         }
         create("githubRelease") {
+            // APKs from this variant are distributable builds, not debug builds.
+            // In particular, keep native C++ in Release mode even when no release
+            // keystore is configured for CI.
+            initWith(getByName("release"))
+            isDebuggable = false
+            isJniDebuggable = false
+
             if (keystoreFilePath != null) {
-                initWith(getByName("release"))
                 isMinifyEnabled = true
                 proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -88,12 +94,10 @@ android {
                 )
                 signingConfig = signingConfigs.getByName("releaseSigningConfig")
             } else {
-                initWith(getByName("debug"))
-                externalNativeBuild {
-                    cmake {
-                        arguments.add("-DCMAKE_BUILD_TYPE=DEBUG")
-                    }
-                }
+                // Keep CI APKs installable without requiring repository secrets.
+                // The Debug signing key is used only for signing; native code remains Release.
+                isMinifyEnabled = false
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
     }

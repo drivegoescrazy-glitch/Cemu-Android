@@ -47,7 +47,14 @@ uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 
 	// get core count
 	uint32 cpuCoreCount = GetPhysicalCoreCount();
+#if defined(__ANDROID__)
+	// Pipeline cache restore runs concurrently with emulator startup. On mobile,
+	// a large worker pool competes with the emulation and render threads and can
+	// trigger thermal/power throttling. Keep the warm-up pool small on Android.
+	m_numCompilationThreads = std::clamp(cpuCoreCount, 1u, 3u);
+#else
 	m_numCompilationThreads = std::clamp(cpuCoreCount, 1u, 8u);
+#endif
 	if (VulkanRenderer::GetInstance()->GetDisableMultithreadedCompilation())
 		m_numCompilationThreads = 1;
 
