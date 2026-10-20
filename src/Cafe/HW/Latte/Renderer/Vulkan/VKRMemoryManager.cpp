@@ -183,7 +183,8 @@ VKRSynchronizedHeapAllocator::VKRSynchronizedHeapAllocator(class VKRMemoryManage
 VKRSynchronizedHeapAllocator::AllocatorReservation* VKRSynchronizedHeapAllocator::AllocateBufferMemory(uint32 size, uint32 alignment)
 {
 	CHAddr addr = m_chunkedHeap.alloc(size, alignment);
-	m_activeAllocations.emplace_back(addr);
+	const uint64 allocationKey = (static_cast<uint64>(addr.chunkIndex) << 32) | addr.offset;
+	m_activeAllocations.emplace(allocationKey, addr);
 	AllocatorReservation* res = m_poolAllocatorReservation.allocObj();
 	res->bufferIndex = addr.chunkIndex;
 	res->bufferOffset = addr.offset;
@@ -195,11 +196,19 @@ VKRSynchronizedHeapAllocator::AllocatorReservation* VKRSynchronizedHeapAllocator
 
 void VKRSynchronizedHeapAllocator::FreeReservation(AllocatorReservation* uploadReservation)
 {
-	// put the allocation on a delayed release queue for the current command buffer
+	// Put the allocation on a delayed release queue for the current command buffer.
+	// The key mirrors the chunk/offset pair recorded when the reservation was made.
 	uint64 currentCommandBufferId = VulkanRenderer::GetInstance()->GetCurrentCommandBufferId();
-	auto it = std::find_if(m_activeAllocations.begin(), m_activeAllocations.end(), [&uploadReservation](const TrackedAllocation& allocation) { return allocation.allocation.chunkIndex == uploadReservation->bufferIndex && allocation.allocation.offset == uploadReservation->bufferOffset; });
+	const uint64 allocationKey = (static_cast<uint64>(uploadReservation->bufferIndex) << 32) | uploadReservation->bufferOffset;
+	auto it = m_activeAllocations.find(allocationKey);
 	cemu_assert_debug(it != m_activeAllocations.end());
-	m_releaseQueue[currentCommandBufferId].emplace_back(it->allocation);
+	if (it == m_activeAllocations.end())
+	{
+		cemuLog_log(LogType::Force, "Attempted to free an inactive Vulkan buffer allocation");
+		m_poolAllocatorReservation.freeObj(uploadReservation);
+		return;
+	}
+	m_releaseQueue[currentCommandBufferId].emplace_back(it->second);
 	m_activeAllocations.erase(it);
 	m_poolAllocatorReservation.freeObj(uploadReservation);
 }

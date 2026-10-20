@@ -206,12 +206,6 @@ private:
 // heap style allocator with released memory being freed after the current command buffer finishes
 class VKRSynchronizedHeapAllocator
 {
-	struct TrackedAllocation
-	{
-		TrackedAllocation(CHAddr allocation) : allocation(allocation) {};
-		CHAddr allocation;
-	};
-
   public:
 	VKRSynchronizedHeapAllocator(class VKRMemoryManager* vkMemoryManager, VKR_BUFFER_TYPE bufferType, size_t minimumBufferAllocSize);
 	VKRSynchronizedHeapAllocator(const VKRSynchronizedHeapAllocator&) = delete; // disallow copy
@@ -237,7 +231,9 @@ class VKRSynchronizedHeapAllocator
 	const class VKRMemoryManager* m_vkrMemMgr;
 	VkBufferChunkedHeap m_chunkedHeap;
 	// allocations
-	std::vector<TrackedAllocation> m_activeAllocations;
+	// Keyed by (chunkIndex, offset) to avoid linear searches when releasing
+	// short-lived GPU buffer reservations.
+	std::unordered_map<uint64, CHAddr> m_activeAllocations;
 	MemoryPool<AllocatorReservation> m_poolAllocatorReservation{32};
 	// release queue
 	std::unordered_map<uint64, std::vector<CHAddr>> m_releaseQueue;
