@@ -48,6 +48,9 @@ jobs:
           echo "EMULATOR_VERSION_MAJOR=0" >> "$GITHUB_ENV"
           echo "EMULATOR_VERSION_MINOR=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
 
+      - name: Bootstrap vcpkg
+        run: bash ./dependencies/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
       - name: Make Gradle wrapper executable
         run: chmod +x src/android/gradlew
 
