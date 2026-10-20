@@ -10,6 +10,7 @@ on:
       - "dependencies/**"
       - "vcpkg.json"
       - "src/**"
+      - ".gitmodules"
       - ".github/workflows/android-apk-release.yml"
   workflow_dispatch:
 
