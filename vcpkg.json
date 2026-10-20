@@ -18,6 +18,7 @@
     "boost-tokenizer",
     "boost-container",
     "boost-program-options",
+    "boost-filesystem",
     "boost-nowide",
     "boost-algorithm",
     "boost-functional",
@@ -28,12 +29,16 @@
     "boost-property-tree",
     "boost-static-string",
     {
+      "name": "boost-context",
+      "platform": "android"
+    },
+    {
       "name": "boost-iostreams",
-      "platform" : "android"
+      "platform": "android"
     },
     {
       "name": "boost-stacktrace",
-      "platform" : "android"
+      "platform": "android"
     },
     "boost-random",
     "fmt",
