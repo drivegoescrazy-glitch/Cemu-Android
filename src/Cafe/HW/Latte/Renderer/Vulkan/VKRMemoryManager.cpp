@@ -388,6 +388,10 @@ VkBufferChunkedHeap::~VkBufferChunkedHeap()
 uint32 VkBufferChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize)
 {
 	size_t allocationSize = std::max<size_t>(m_minimumBufferAllocationSize, minimumAllocationSize);
+	// Keep the backing buffer atom-aligned so non-coherent flush ranges can be
+	// safely rounded up without reaching beyond the mapped buffer.
+	const size_t atomSize = std::max<uint32>(1, VulkanRenderer::GetInstance()->GetNonCoherentAtomSize());
+	allocationSize = ((allocationSize + atomSize - 1) / atomSize) * atomSize;
 	VKRBuffer* buffer = VKRBuffer::Create(m_bufferType, allocationSize, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	if(!buffer)
 		buffer = VKRBuffer::Create(m_bufferType, allocationSize, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
