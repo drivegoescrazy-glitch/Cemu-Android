@@ -175,6 +175,7 @@ class CustomDriversViewModel : ViewModel() {
         if (selectedDriverPath.value == driver.path) {
             selectedDriverPath.value = null
             NativeSettings.setCustomDriverPath(null)
+            NativeSettings.saveSettings()
         }
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -196,6 +197,7 @@ class CustomDriversViewModel : ViewModel() {
 
         selectedDriverPath.value = null
         NativeSettings.setCustomDriverPath(null)
+        NativeSettings.saveSettings()
     }
 
     fun setDriverSelected(driver: Driver) {
@@ -217,6 +219,7 @@ class CustomDriversViewModel : ViewModel() {
         _installedDrivers.value = installedDrivers
 
         NativeSettings.setCustomDriverPath(driver.path)
+        NativeSettings.saveSettings()
         selectedDriverPath.value = driver.path
     }
 
