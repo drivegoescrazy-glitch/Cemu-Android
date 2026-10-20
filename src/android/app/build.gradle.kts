@@ -114,6 +114,8 @@ android {
         ) else emptyArray()
     val cmakeArguments = arrayOf(
         "-DANDROID_STL=c++_shared",
+        "-DCMAKE_C_COMPILER_LAUNCHER=ccache",
+        "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
         "-DENABLE_VCPKG=ON",
         "-DVCPKG_TARGET_ANDROID=ON",
         "-DENABLE_SDL=OFF",

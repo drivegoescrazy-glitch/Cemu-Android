@@ -32,6 +32,10 @@ jobs:
       # Keep native dependency builds within the memory budget of hosted runners.
       VCPKG_MAX_CONCURRENCY: "2"
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: "2G"
+      CCACHE_COMPILERCHECK: content
     steps:
       - name: Checkout source and submodules
         uses: actions/checkout@v4
@@ -42,7 +46,8 @@ jobs:
       - name: Install native build utilities
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build curl zip unzip tar
+          sudo apt-get install -y cmake ninja-build ccache curl zip unzip tar
+          mkdir -p "$GITHUB_WORKSPACE/.vcpkg-cache" "$GITHUB_WORKSPACE/.ccache"
           # vcpkg requires its configured binary-cache path to exist before CMake starts.
           mkdir -p "$GITHUB_WORKSPACE/.vcpkg-cache"
 
@@ -53,6 +58,14 @@ jobs:
           key: vcpkg-android-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'dependencies/vcpkg/versions/baseline.json') }}
           restore-keys: |
             vcpkg-android-${{ runner.os }}-
+
+      - name: Cache C/C++ compiler outputs
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-android-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**/*.cpp', 'src/**/*.c', 'src/**/*.h', 'src/**/*.hpp', 'dependencies/**/CMakeLists.txt', 'src/android/app/build.gradle.kts') }}
+          restore-keys: |
+            ccache-android-${{ runner.os }}-
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -97,9 +110,18 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x src/android/gradlew
 
+      - name: Prepare compiler cache
+        run: |
+          ccache --set-config=max_size=2G
+          ccache --zero-stats
+
       - name: Build ARM64 APK
         working-directory: src/android
-        run: ./gradlew --no-daemon --stacktrace --info assembleGithubRelease
+        run: ./gradlew --no-daemon --stacktrace assembleGithubRelease
+
+      - name: Report compiler cache usage
+        if: always()
+        run: ccache --show-stats || true
 
       - name: Verify APK output
         id: apk

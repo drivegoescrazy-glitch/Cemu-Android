@@ -66,6 +66,12 @@
     <string name="extra">Extra</string>
     <string name="nunchuck">Nunchuck</string>
     <string name="games_folder_description">Add a game path to scan for games displayed in the game list</string>
+    <string name="add_game_folder_action">Add game folder</string>
+    <string name="open_game_file_action">Open game file</string>
+    <string name="game_folder_added_scanning">Game folder added. Scanning for games.</string>
+    <string name="game_folder_already_added">This game folder is already added.</string>
+    <string name="game_folder_permission_failed">Cemu could not keep read access to this location. Select it again from the Android file picker.</string>
+    <string name="unsupported_game_file">Choose a supported Wii U game file: WUA, WUD, WUX, WUHB, ISO, RPX, or ELF.</string>
     <string name="games_folder_empty">No games folder selected</string>
     <string name="options">Options</string>
     <string name="emulated_controller_selection_description">Selected controller: %1s</string>

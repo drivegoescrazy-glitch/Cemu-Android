@@ -45,10 +45,17 @@ fun GamePathsScreen(
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: SecurityException) {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(context.getString(R.string.game_folder_permission_failed))
+                }
+                return@rememberLauncherForActivityResult
+            }
             val documentFile =
                 DocumentFile.fromTreeUri(context, uri) ?: return@rememberLauncherForActivityResult
             val gamesPath = documentFile.uri.toString()
