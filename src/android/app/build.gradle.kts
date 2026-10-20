@@ -26,6 +26,12 @@ fun getGitHash(): String? = "git log --format=%h -1".runCommand()?.trim()
 
 val versionMajor: String? = System.getenv("EMULATOR_VERSION_MAJOR")
 val versionMinor: String? = System.getenv("EMULATOR_VERSION_MINOR")
+// Optional unique package ID for side-by-side builds. Must be a valid Android application ID.
+val configuredApplicationId: String = System.getenv("ANDROID_APPLICATION_ID")?.trim().orEmpty()
+val applicationIdForBuild: String = configuredApplicationId.ifBlank { "info.cemu.cemu" }
+require(applicationIdForBuild.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+"))) {
+    "ANDROID_APPLICATION_ID must be a valid qualified Android application ID."
+}
 
 fun getVersionName(): String {
     if (versionMajor != null && versionMinor != null)
@@ -40,7 +46,7 @@ android {
     compileSdk = 35
     ndkVersion = "26.1.10909125"
     defaultConfig {
-        applicationId = "info.cemu.cemu"
+        applicationId = applicationIdForBuild
         minSdk = 31
         targetSdk = 35
         versionCode = getVersionCode()
