@@ -4,6 +4,8 @@
 #include "util/ChunkedHeap/ChunkedHeap.h"
 #include "util/helpers/MemoryPool.h"
 
+#include <unordered_map>
+
 enum class VKR_BUFFER_TYPE
 {
 	STAGING, // staging upload buffer
