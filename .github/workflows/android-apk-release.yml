@@ -43,6 +43,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build curl zip unzip tar
+          # vcpkg requires its configured binary-cache path to exist before CMake starts.
+          mkdir -p "$GITHUB_WORKSPACE/.vcpkg-cache"
 
       - name: Cache vcpkg binaries
         uses: actions/cache@v4
