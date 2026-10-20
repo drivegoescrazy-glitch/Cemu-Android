@@ -348,7 +348,8 @@ Java_info_cemu_cemu_nativeinterface_NativeSettings_getCustomDriverPath(JNIEnv* e
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
 Java_info_cemu_cemu_nativeinterface_NativeSettings_setCustomDriverPath(JNIEnv* env, [[maybe_unused]] jclass clazz, jstring custom_driver_path)
 {
-	throw std::runtime_error("todo");
+	// A null Java string means "use the system Vulkan driver". Do not throw
+	// from this JNI entry point: selecting or clearing a driver must be safe.
 	g_config.data().custom_driver_path = JNIUtils::toString(env, custom_driver_path);
 }
 
