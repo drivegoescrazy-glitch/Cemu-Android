@@ -60,8 +60,26 @@ jobs:
           cache: gradle
           cache-dependency-path: src/android/**/*.gradle*
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Configure preinstalled Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          if [ ! -x "$SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager" ] && [ ! -x "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            echo "Android SDK command-line tools not found under $SDK_ROOT" >&2
+            exit 1
+          fi
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          if [ -x "$SDK_ROOT/cmdline-tools/latest/bin" ]; then
+            echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          elif [ -x "$SDK_ROOT/cmdline-tools/16.0/bin" ]; then
+            echo "$SDK_ROOT/cmdline-tools/16.0/bin" >> "$GITHUB_PATH"
+          fi
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -path '*/bin/sdkmanager' -type f -print | sort -V | tail -n 1)"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" --version
 
       - name: Install Android native build tools
         run: |
