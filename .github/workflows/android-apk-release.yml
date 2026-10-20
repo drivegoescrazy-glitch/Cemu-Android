@@ -1,0 +1,88 @@
+name: Build and release Android APK
+
+on:
+  push:
+    branches: [android-port]
+    paths:
+      - "src/android/**"
+      - "CMakeLists.txt"
+      - "cmake/**"
+      - "src/**"
+      - ".github/workflows/android-apk-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout source and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+          cache-dependency-path: src/android/**/*.gradle*
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android native build tools
+        run: |
+          sdkmanager "platform-tools" "platforms;android-35" "ndk;26.1.10909125" "cmake;3.22.1"
+          echo "ANDROID_APPLICATION_ID=info.cemu.cemu.build${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "EMULATOR_VERSION_MAJOR=0" >> "$GITHUB_ENV"
+          echo "EMULATOR_VERSION_MINOR=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x src/android/gradlew
+
+      - name: Build ARM64 APK
+        working-directory: src/android
+        run: ./gradlew --no-daemon --stacktrace assembleGithubRelease
+
+      - name: Verify APK output
+        id: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$(find src/android/app/build/outputs/apk/githubRelease -type f -name '*.apk' -print -quit)"
+          test -n "$APK"
+          mkdir -p release-assets
+          cp "$APK" "release-assets/Cemu-Android-${GITHUB_RUN_NUMBER}-arm64.apk"
+          echo "path=release-assets/Cemu-Android-${GITHUB_RUN_NUMBER}-arm64.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cemu-Android-${{ github.run_number }}-arm64
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-build-${{ github.run_number }}
+          name: Cemu Android build ${{ github.run_number }}
+          prerelease: true
+          generate_release_notes: true
+          files: ${{ steps.apk.outputs.path }}
+          body: |
+            Automated ARM64 Android build from commit ${{ github.sha }}.
+
+            This build uses a unique application ID (`info.cemu.cemu.build${{ github.run_number }}`) so it can be installed alongside other builds. Performance has not been benchmarked on physical hardware; no specific FPS improvement is guaranteed.
