@@ -24,12 +24,32 @@ jobs:
   build-and-release:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
+    env:
+      # Avoid vcpkg trying to download its own copies of CMake and Ninja.
+      VCPKG_FORCE_SYSTEM_BINARIES: "1"
+      VCPKG_DISABLE_METRICS: "1"
+      # Keep native dependency builds within the memory budget of hosted runners.
+      VCPKG_MAX_CONCURRENCY: "2"
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
     steps:
       - name: Checkout source and submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Install native build utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build curl zip unzip tar
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: .vcpkg-cache
+          key: vcpkg-android-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'dependencies/vcpkg/versions/baseline.json') }}
+          restore-keys: |
+            vcpkg-android-${{ runner.os }}-
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -58,7 +78,7 @@ jobs:
 
       - name: Build ARM64 APK
         working-directory: src/android
-        run: ./gradlew --no-daemon --stacktrace assembleGithubRelease
+        run: ./gradlew --no-daemon --stacktrace --info assembleGithubRelease
 
       - name: Verify APK output
         id: apk
@@ -91,3 +111,17 @@ jobs:
             Automated ARM64 Android build from commit ${{ github.sha }}.
 
             This build uses a unique application ID (`info.cemu.cemu.build${{ github.run_number }}`) so it can be installed alongside other builds. Performance has not been benchmarked on physical hardware; no specific FPS improvement is guaranteed.
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cemu-android-diagnostics-${{ github.run_number }}
+          path: |
+            src/android/app/build/reports/**
+            src/android/app/build/outputs/logs/**
+            src/android/app/.cxx/**
+            dependencies/vcpkg/buildtrees/**/*.log
+            dependencies/vcpkg/buildtrees/**/*.txt
+          if-no-files-found: warn
+          retention-days: 14
